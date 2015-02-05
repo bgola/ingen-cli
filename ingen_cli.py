@@ -3,7 +3,7 @@
 from ingen import Remote
 from cmd2 import Cmd
 
-import readline, sys, socket, lilv, rdflib
+import readline, sys, socket, lilv, rdflib, pyparsing
 
 INSTANCE_PREFIX = "effect_"
 readline.set_completer_delims(' ')
@@ -11,6 +11,7 @@ readline.set_completer_delims(' ')
 class IngenCLI(Cmd, object):
 
     prompt = "ingen-cli> "
+    commentGrammars = pyparsing.cStyleComment
 
     def __init__(self, *args, **kwargs):
         self.world = lilv.World()
@@ -55,10 +56,12 @@ class IngenCLI(Cmd, object):
         return [ plugin.get_uri().as_string() for plugin in self._known_plugins if plugin.get_uri().as_string().startswith(text) ]
 
     def do_remove(self, instance_id):
-        r = self.ingen.delete("/ingenclieffect%s" % instance_id)
+        r = self.ingen.delete("/%s%s" % (INSTANCE_PREFIX, instance_id))
 
-    def do_preset(self, instance_id, preset_label):
-        pass
+    def do_preset(self, args):
+        instance_id, preset = args.split()
+        preset = "<%s>" % preset
+        self.ingen.set("/%s%s" % (INSTANCE_PREFIX, instance_id), "<http://lv2plug.in/ns/ext/presets#preset>", preset)
 
     def do_save_preset(self):
         pass
@@ -117,8 +120,14 @@ class IngenCLI(Cmd, object):
             return heads
         return []
 
-    def do_bypass(self, instance_id):
-        pass
+    def do_bypass(self, args):
+        instance_id, value = args.split()
+        # if bypass = 0 ; enabled = true
+        if value == "0":
+            value = "true"
+        else:
+            value = "false"
+        self.ingen.set("/%s%s" % (INSTANCE_PREFIX, instance_id), "ingen:enabled", value)
 
     def do_param_set(self, args):
         instance_id, port_symbol, value = args.split()

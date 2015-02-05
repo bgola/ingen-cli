@@ -210,6 +210,13 @@ class Remote(Interface):
         # Update model with remaining information, e.g. patch:Put updates
         return self.update_model(response_model)
 
+    def get_plugins(self):
+        return self.send('''
+[]
+ 	a patch:Get ;
+ 	patch:subject <ingen:/plugins> .
+''')
+
     def get(self, path):
         return self.send('''
 []
@@ -235,6 +242,7 @@ class Remote(Interface):
         patch:property %s ;
 	patch:value %s .
 ''' % (path, prop, value)
+        print x
         return self.send(x)
 
     def connect(self, tail, head):
